@@ -1,0 +1,67 @@
+// src/App.tsx
+import React, { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+
+interface Task { id: string; text: string; }
+
+function App() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => {
+    const saved = localStorage.getItem('tasksnap');
+    if (saved) setTasks(JSON.parse(saved));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('tasksnap', JSON.stringify(tasks));
+  }, [tasks]);
+
+  const add = () => {
+    const text = prompt('New Task?');
+    if (text) setTasks([{ id: Date.now().toString(), text }, ...tasks]);
+  };
+
+  const onDragEnd = (res: DropResult) => {
+    if (!res.destination) return;
+    const reordered = Array.from(tasks);
+    const [m] = reordered.splice(res.source.index, 1);
+    reordered.splice(res.destination.index, 0, m);
+    setTasks(reordered);
+  };
+
+  return (
+    <div style={{ padding: 20, fontFamily: 'sans-serif' }}>
+      <h1>TaskSnap</h1>
+      <button onClick={add}>+ Add Task</button>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="list">
+          {provided => (
+            <ul ref={provided.innerRef} {...provided.droppableProps}>
+              {tasks.map((t, i) => (
+                <Draggable key={t.id} draggableId={t.id} index={i}>
+                  {p => (
+                    <li 
+                      ref={p.innerRef}
+                      {...p.draggableProps}
+                      {...p.dragHandleProps}
+                      style={{
+                        padding: '8px 12px',
+                        margin: '8px 0',
+                        background: '#f0f0f0',
+                        borderRadius: 4,
+                        ...p.draggableProps.style
+                      }}
+                    >
+                      {t.text}
+                    </li>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </ul>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </div>
+  );
+}
+
+export default App;
